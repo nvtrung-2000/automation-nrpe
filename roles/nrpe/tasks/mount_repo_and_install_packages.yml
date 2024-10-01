@@ -1,0 +1,67 @@
+---
+- name: Ensure the /mnt/localrepo directory exists
+  file:
+    path: /mnt/localrepo
+    state: directory
+    mode: "0755"
+  become: yes
+
+- name: Extract the local repository with correct directory structure
+  unarchive:
+    src: "/root/automation-nrpe/roles/nrpe/files/repos/minirepo_oracle8.tar.gz"
+    dest: /mnt/localrepo
+    remote_src: no
+    extra_opts: [--strip-components=2]
+  become: yes
+
+- name: Configure local repository for Oracle Linux
+  copy:
+    content: |
+      [localrepo]
+      name=Local Repository
+      baseurl=file:///mnt/localrepo
+      enabled=1
+      gpgcheck=0
+    dest: /etc/yum.repos.d/localrepo.repo
+  become: yes
+
+- name: Backup existing repositories by renaming them to .bak
+  shell: "if [ -f {{ item }} ]; then mv {{ item }} {{ item }}.bak; fi"
+  with_fileglob:
+    - /etc/yum.repos.d/*.repo
+  become: yes
+  ignore_errors: yes
+
+- name: Clear all Yum caches
+  command: yum clean all
+  become: yes
+
+- name: Verify if localrepo is available
+  command: yum repolist enabled | grep localrepo
+  register: localrepo_check
+  failed_when: "'localrepo' not in localrepo_check.stdout"
+  become: yes
+
+- name: Run yum makecache to update the cache for localrepo
+  yum:
+    name: "*"
+    disablerepo: "*"
+    enablerepo: "localrepo"
+    state: latest
+    update_cache: yes
+  become: yes
+
+- name: Install required packages (gcc, glibc, openssl, etc.)
+  yum:
+    name:
+      - gcc
+      - glibc
+      - glibc-common
+      - openssl
+      - openssl-devel
+      - perl
+      - wget
+    disablerepo: "*"
+    enablerepo: "localrepo"
+    state: present
+  become: yes

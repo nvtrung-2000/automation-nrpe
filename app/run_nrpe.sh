@@ -1,0 +1,1 @@
+ansible-playbook playbooks/nrpe.yml --ask-vault-pass

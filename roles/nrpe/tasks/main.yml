@@ -1,0 +1,3 @@
+---
+- name: Mount repository and install packages
+  include_tasks: mount_repo_and_install_packages.yml

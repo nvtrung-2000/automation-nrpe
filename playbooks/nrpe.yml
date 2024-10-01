@@ -1,0 +1,18 @@
+---
+# File: playbooks/nrpe.yml
+
+- import_playbook: config_playbooks.yml  # Include file config_playbooks.yml
+- name: Install and configure NRPE
+  hosts: oraclelinux
+  become: yes
+  vars:
+    ansible_user: nagios
+    ansible_ssh_pass: "admin"
+    ansible_become_pass: "admin"
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+  roles:
+    - nrpe  # Gọi role 'nrpe' để thực hiện các tác vụ liên quan
+
+

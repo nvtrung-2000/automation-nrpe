@@ -1,0 +1,46 @@
+---
+- name: Add SSH key from vault to remote hosts
+  hosts: oraclelinux
+  become: yes
+
+  vars:
+    ansible_user: nagios
+    ansible_ssh_pass: "admin"
+    ansible_become: yes
+    ansible_become_method: sudo
+    ansible_become_pass: "admin"
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    nagios_user: nagios
+    nagios_group: nagios
+
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: "/home/{{ nagios_user }}/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "{{ nagios_user }}"
+        group: "{{ nagios_group }}"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ nagios_user }}"
+        key: "{{ lookup('file', '/root/automation-nrpe/ssh/public_key.pem') }}"
+        state: present
+        path: "/home/{{ nagios_user }}/.ssh/authorized_keys"
+        manage_dir: no
+
+    - name: Ensure correct permissions on authorized_keys
+      file:
+        path: "/home/{{ nagios_user }}/.ssh/authorized_keys"
+        mode: '0600'
+        owner: "{{ nagios_user }}"
+        group: "{{ nagios_group }}"
+
+    - name: Verify authorized_keys content
+      command: cat /home/{{ nagios_user }}/.ssh/authorized_keys
+      register: authorized_keys_content
+
+    - debug:
+        var: authorized_keys_content.stdout
